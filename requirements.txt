@@ -1,0 +1,4 @@
+pyrealsense2~=2.55.1.6486
+mediapipe~=0.10.21
+opencv-python~=4.5.5.64
+numpy~=1.26.4
