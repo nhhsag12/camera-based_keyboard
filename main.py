@@ -85,10 +85,10 @@ def run_keyboard_interface():
 
                     # Draw finger tip info
                     viz_utils.draw_finger_tip_info(color_image, index_finger_pixel_x, index_finger_pixel_y, depth_at_index_finger_m)
-                    viz_utils.draw_finger_tip_info(color_image, thumb_finger_pixel_x, thumb_finger_pixel_y, depth_at_thumb_finger_m)
-                    viz_utils.draw_finger_tip_info(color_image, middle_finger_pixel_x, middle_finger_pixel_y, depth_at_middle_finger_m)
-                    viz_utils.draw_finger_tip_info(color_image, ring_finger_pixel_x, ring_finger_pixel_y, depth_at_ring_finger_m)
-                    viz_utils.draw_finger_tip_info(color_image, pinky_finger_pixel_x, pinky_finger_pixel_y, depth_at_pinky_finger_m)
+                    # viz_utils.draw_finger_tip_info(color_image, thumb_finger_pixel_x, thumb_finger_pixel_y, depth_at_thumb_finger_m)
+                    # viz_utils.draw_finger_tip_info(color_image, middle_finger_pixel_x, middle_finger_pixel_y, depth_at_middle_finger_m)
+                    # viz_utils.draw_finger_tip_info(color_image, ring_finger_pixel_x, ring_finger_pixel_y, depth_at_ring_finger_m)
+                    # viz_utils.draw_finger_tip_info(color_image, pinky_finger_pixel_x, pinky_finger_pixel_y, depth_at_pinky_finger_m)
 
                     # Check for key press if finger is within depth threshold
                     if depth_at_index_finger_m >= DEPTH_THRESHOLD_M:
