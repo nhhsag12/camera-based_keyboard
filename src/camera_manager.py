@@ -2,7 +2,7 @@ import pyrealsense2 as rs
 import numpy as np
 
 class CameraManager:
-    def __init__(self, color_width=640, color_height=480, depth_width=640, depth_height=480, fps=30):
+    def __init__(self, color_width=1280, color_height=720, depth_width=1280, depth_height=720, fps=30):
         self.pipeline = rs.pipeline()
         self.config = rs.config()
         self.color_width = color_width
@@ -12,6 +12,8 @@ class CameraManager:
         self.fps = fps
         self.depth_scale = 0.0
         self.align = rs.align(rs.stream.color)
+
+
 
         self._configure_streams()
 
@@ -30,6 +32,9 @@ class CameraManager:
 
         # Enable depth stream
         self.config.enable_stream(rs.stream.depth, self.depth_width, self.depth_height, rs.format.z16, self.fps)
+
+    def get_resolution(self):
+        return self.color_width, self.color_height, self.depth_width, self.depth_height, self.fps
 
     def start_stream(self):
         print("Starting RealSense camera stream...")

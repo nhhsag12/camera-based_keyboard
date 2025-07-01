@@ -3,17 +3,6 @@ import os
 import numpy as np
 import cv2
 
-KEYBOARD_ROW_1 = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
-KEYBOARD_ROW_2 = ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p']
-KEYBOARD_ROW_3 = ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l']
-KEYBOARD_ROW_4 = ['z', 'x', 'c', 'v', 'b', 'n', 'm']
-KEYBOARD_ROW_5 = ["DEL", "SPACE", "ENTER"]
-DEPTH_THRESHOLD_ROW_1 = (0.293, 0.3)
-DEPTH_THRESHOLD_ROW_2 = (0.3, 0.311)
-DEPTH_THRESHOLD_ROW_3 = (0.311, 0.316)
-DEPTH_THRESHOLD_ROW_4 = (0.316, 0.323)
-DEPTH_THRESHOLD_ROW_5 = (0.323, 0.333)
-
 class KeyboardManager:
     def __init__(self, annotation_filename='src/keyboard_annotations.json', points_per_key=4):
         self.annotation_filename = annotation_filename

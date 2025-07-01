@@ -58,6 +58,7 @@ DEPTH_THRESHOLD_ROW_5 = (0.325, 0.335)
 
 
 ## Usage
+### Setup Environment
 1. Clone the repository
     ```bash
     git clone https://github.com/nhhsag12/camera-based_keyboard.git
@@ -70,19 +71,71 @@ DEPTH_THRESHOLD_ROW_5 = (0.325, 0.335)
    source .venv/bin/active
    pip install -r requirements.txt 
    ```
-3. Ensure your RealSense camera is connected
-4. Run the main script:
+### Keyboard Annotation Tools
+1. Start the annotation tool:
+    ```bash
+   python keyboard_annotation.py 
+   ```
+2. Controls:
+   - 'c': Capture current frame for annotation
+   - Mouse clicks: Place points for key corners (4 points per key)
+   - '+'/'-': Zoom in/out for precise point placement
+   - Arrow keys: Pan the zoomed view
+   - 'r': Reset zoom and pan
+   - 's': Save annotations to JSON file
+   - 'q': Quit the program
+
+3. Annotation Process:
+   - Capture a clear frame of the keyboard using 'c'
+   - for each key:
+    1. Click 4 corner points
+   2. Enter the key value
+   3. Confirm to save the key annotation
+    - Use zoom/pan as needed for accurate point placement
+    - Save progress periodically using 's'
+### Main Program
+1. Ensure your RealSense camera is connected
+2. Run the main script:
    ```bash
    python main.py
    ```
-5. Position your hand and paper-based keyboard above the virtual keyboard area
+3. Position your hand and paper-based keyboard above the virtual keyboard area
 
-6. Move your fingers to type:
+4. Move your fingers to type:
    - Keys are activated when fingers reach the appropriate depth threshold
    - Visual feedback shows detected finger positions and active keys
    - Typed text appears in real-time on the display
 
 ## Key Features Implementation
+
+### Annotation Tool features
+the tool saves annotations in JSON format:
+```json
+{
+    "key": "0",
+    "points": [
+        {
+            "x": 189,
+            "y": 292
+        },
+        {
+            "x": 185,
+            "y": 312
+        },
+        {
+            "x": 212,
+            "y": 314
+        },
+        {
+            "x": 215,
+            "y": 294
+        }
+    ]
+}
+```
+Eeach key annotation contains:
+- `key`: The character of special key name
+- `points`: Array of 4 corner coordinates
 
 ### Hand Tracking
 The system tracks five finger positions:

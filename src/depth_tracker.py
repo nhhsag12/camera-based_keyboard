@@ -3,25 +3,14 @@ import numpy as np
 import cv2
 import mediapipe as mp
 import time
+from camera_manager import CameraManager # Import CameraManager
 
 # --- Configuration for RealSense Camera ---
-pipeline = rs.pipeline()
-config = rs.config()
+# Define camera resolution (consistent for both color and depth)
+# These values will be passed to CameraManager
 
-# Get device product line for setting a supporting resolution
-pipeline_wrapper = rs.pipeline_wrapper(pipeline)
-pipeline_profile = config.resolve(pipeline_wrapper)
-device = pipeline_profile.get_device()
-device_product_line = str(device.get_info(rs.camera_info.product_line))
-
-# Enable color stream
-if device_product_line == 'L500':
-    config.enable_stream(rs.stream.color, 960, 540, rs.format.bgr8, 30)
-else:
-    config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
-
-# Enable depth stream
-config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
+# Initialize CameraManager
+camera_manager = CameraManager()
 
 # --- Initialize MediaPipe Hands ---
 mp_drawing = mp.solutions.drawing_utils
@@ -44,17 +33,13 @@ tracking_start_time = 0.0 # Timestamp when tracking started
 
 # --- Main Program ---
 try:
-    # Start streaming
-    profile = pipeline.start(config)
+    # Start streaming using CameraManager
+    if not camera_manager.start_stream():
+        print("Failed to start camera stream. Exiting.")
+        exit()
 
-    # Get the depth sensor's depth scale
-    depth_sensor = profile.get_device().first_depth_sensor()
-    depth_scale = depth_sensor.get_depth_scale()
-    print(f"Depth Scale: {depth_scale}")
-
-    # Create an align object to align depth frame to color frame
-    align_to = rs.stream.color
-    align = rs.align(align_to)
+    # The depth scale is now managed by CameraManager if needed elsewhere
+    # depth_scale = camera_manager.depth_scale # You can access it like this if required
 
     print("\n--- Finger Depth Tracking Program (Manual Control) ---")
     print("Move your index finger in front of the camera.")
@@ -64,35 +49,24 @@ try:
     print("Press 'q' to QUIT the program.")
 
     while True:
-        # Wait for a coherent pair of frames: depth and color
-        frames = pipeline.wait_for_frames()
+        # Get frames from CameraManager
+        color_image, aligned_depth_frame, depth_frame_dims = camera_manager.get_frames()
 
-        # Align the depth frame to the color frame
-        aligned_frames = align.process(frames)
-
-        # Get aligned frames
-        aligned_depth_frame = aligned_frames.get_depth_frame()
-        color_frame = aligned_frames.get_color_frame()
-
-        if not aligned_depth_frame or not color_frame:
+        if color_image is None or aligned_depth_frame is None:
             continue
 
-        # Convert images to numpy arrays
-        color_image = np.asanyarray(color_frame.get_data())
-
-        # Get dimensions of the aligned depth frame for clamping
-        depth_frame_width = aligned_depth_frame.get_width()
-        depth_frame_height = aligned_depth_frame.get_height()
+        # Get actual width and height of the depth frame for clamping from the returned tuple
+        depth_frame_width = depth_frame_dims[0]
+        depth_frame_height = depth_frame_dims[1]
 
         # Reset current finger depth for this frame
         current_finger_depth = 0.0
         finger_detected_this_frame = False
 
         # Process the color image with MediaPipe Hands
-        color_image.flags.writeable = False
+        # The CameraManager already sets color_image.flags.writeable = True
         RGB_frame = cv2.cvtColor(color_image, cv2.COLOR_BGR2RGB)
         result = hands.process(RGB_frame)
-        color_image.flags.writeable = True
 
         # Draw hand landmarks and get finger depth
         if result.multi_hand_landmarks:
@@ -107,6 +81,7 @@ try:
                 finger_pixel_x, finger_pixel_y = int(index_finger_tip.x * w), int(index_finger_tip.y * h)
 
                 # Clamp coordinates to ensure they are within the depth frame's bounds
+                # Use depth_frame_width for X and depth_frame_height for Y
                 clamped_finger_pixel_x = max(0, min(finger_pixel_x, depth_frame_width - 1))
                 clamped_finger_pixel_y = max(0, min(finger_pixel_y, depth_frame_height - 1))
 
@@ -201,8 +176,8 @@ try:
             print("Tracking data RESET.")
 
 finally:
-    # Stop streaming and clean up resources
+    # Stop streaming and clean up resources using CameraManager
     print("\nStopping stream and cleaning up...")
-    pipeline.stop()
+    camera_manager.stop_stream()
     cv2.destroyAllWindows()
     hands.close()

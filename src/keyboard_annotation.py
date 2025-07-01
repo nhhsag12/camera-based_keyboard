@@ -3,39 +3,19 @@ import numpy as np
 import cv2
 import json
 import os
+from camera_manager import CameraManager # Import CameraManager
 
 # --- Configuration for RealSense Camera ---
-pipeline = rs.pipeline()
-config = rs.config()
-
-# Get device product line for setting a supporting resolution
-pipeline_wrapper = rs.pipeline_wrapper(pipeline)
-pipeline_profile = config.resolve(pipeline_wrapper)
-device = pipeline_profile.get_device()
-device_product_line = str(device.get_info(rs.camera_info.product_line))
-
-# Define camera resolution (consistent for both color and depth)
-# Adjusted to match your annotation file from previous queries
-CAMERA_WIDTH = 640
-CAMERA_HEIGHT = 480
-CAMERA_FPS = 30
-
-# Enable color stream
-if device_product_line == 'L500':
-    config.enable_stream(rs.stream.color, 960, 540, rs.format.bgr8, CAMERA_FPS)
-    CAMERA_WIDTH = 960 # Update dimensions for L500
-    CAMERA_HEIGHT = 540
-else:
-    config.enable_stream(rs.stream.color, CAMERA_WIDTH, CAMERA_HEIGHT, rs.format.bgr8, CAMERA_FPS)
-
-# Enable depth stream (not strictly needed for annotation, but good for consistency)
-config.enable_stream(rs.stream.depth, CAMERA_WIDTH, CAMERA_HEIGHT, rs.format.z16, CAMERA_FPS)
+# Initialize CameraManager
+# The CameraManager will handle the stream configuration and starting
+camera_manager = CameraManager()
+CAMERA_WIDTH, CAMERA_HEIGHT, _, _, CAMERA_FPS = camera_manager.get_resolution()
 
 # --- Global variables for annotation ---
 annotations = []
 current_raw_frame = None  # To hold the latest UNMODIFIED color frame for annotation coordinate calculation
 window_name = 'Keyboard Annotation Tool'
-output_filename = 'keyboard_annotations.json'
+output_filename = '../assets/keyboard_annotations.json'
 
 # Variables to manage the 4-point annotation process
 temp_key_points = []  # Stores points for the current key being annotated
@@ -244,8 +224,11 @@ def draw_current_frame_with_annotations():
 
 # --- Main program flow ---
 try:
-    # Start streaming
-    profile = pipeline.start(config)
+    # Start streaming using CameraManager
+    if not camera_manager.start_stream():
+        print("Failed to start camera stream. Exiting.")
+        exit()
+
     print(f"RealSense camera started at {CAMERA_WIDTH}x{CAMERA_HEIGHT}@{CAMERA_FPS}fps.")
     print(f"Instructions:")
     print(f"  - Press 'c' to CAPTURE a frame for annotation.")
@@ -257,11 +240,6 @@ try:
     print(f"  - Press 's' to SAVE all annotations to '{output_filename}'.")
     print(f"  - Press 'q' to QUIT the program.")
 
-
-    # Create align object to align depth frame to color frame (for potential future use)
-    align_to = rs.stream.color
-    align = rs.align(align_to)
-
     cv2.namedWindow(window_name, cv2.WINDOW_AUTOSIZE)
     cv2.setMouseCallback(window_name, mouse_callback)
 
@@ -269,21 +247,14 @@ try:
     is_live_view = True
 
     while True:
-        # Wait for a coherent pair of frames: depth and color
-        frames = pipeline.wait_for_frames()
+        # Get frames from CameraManager
+        color_image, aligned_depth_frame, (depth_width, depth_height) = camera_manager.get_frames()
 
-        # Align the depth frame to the color frame
-        aligned_frames = align.process(frames)
-
-        # Get aligned frames
-        color_frame = aligned_frames.get_color_frame()
-
-        if not color_frame:
+        if color_image is None:
             continue
 
-        # Convert images to numpy arrays
         # This is the raw frame that we will always base our annotations on (even when zoomed)
-        current_raw_frame = np.asanyarray(color_frame.get_data())
+        current_raw_frame = color_image
 
         if is_live_view:
             # In live view, continually update the display
@@ -298,6 +269,7 @@ try:
 
         key = cv2.waitKey(1) & 0xFF
 
+        # print(key)
         # Handle keyboard inputs
         if key == ord('c'):
             is_live_view = False  # Switch to captured frame mode
@@ -352,18 +324,19 @@ try:
 
             print(f"Zoom: {zoom_factor:.1f}x")
             draw_current_frame_with_annotations()
-        elif key == 2490368: # Up arrow
+        elif key == 59: # Up arrow (';')
+            # print("up arrow")
             pan_y = max(0, pan_y - pan_speed)
             draw_current_frame_with_annotations()
-        elif key == 2621440: # Down arrow
+        elif key == 46: # Down arrow ('.')
             # Calculate max pan_y to stay within bounds given current zoom
             max_pan_y = CAMERA_HEIGHT - int(CAMERA_HEIGHT / zoom_factor)
             pan_y = min(max_pan_y, pan_y + pan_speed)
             draw_current_frame_with_annotations()
-        elif key == 2424832: # Left arrow
+        elif key == 44: # Left arrow (',')
             pan_x = max(0, pan_x - pan_speed)
             draw_current_frame_with_annotations()
-        elif key == 2555904: # Right arrow
+        elif key == 47: # Right arrow ('/')
             # Calculate max pan_x to stay within bounds given current zoom
             max_pan_x = CAMERA_WIDTH - int(CAMERA_WIDTH / zoom_factor)
             pan_x = min(max_pan_x, pan_x + pan_speed)
@@ -373,7 +346,7 @@ try:
             break
 
 finally:
-    # Stop streaming and clean up resources
+    # Stop streaming and clean up resources using CameraManager
     print("Stopping stream and cleaning up...")
-    pipeline.stop()
+    camera_manager.stop_stream()
     cv2.destroyAllWindows()
