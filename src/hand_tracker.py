@@ -6,7 +6,8 @@ class HandTracker:
         self.mp_hands = mp.solutions.hands
         self.hands = self.mp_hands.Hands(
             min_detection_confidence=min_detection_confidence,
-            min_tracking_confidence=min_tracking_confidence
+            min_tracking_confidence=min_tracking_confidence,
+            model_complexity=1
         )
         self.mp_drawing = mp.solutions.drawing_utils
 

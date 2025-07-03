@@ -236,7 +236,6 @@ Press 'q' to quit the application.
 - [ ] Automatic keyboard layout detection
 - [ ] Enhance accuracy
 - [ ] Support for additional special characters
-- 
 
 # Demo
 ![demo.PNG](images/demo.PNG)
