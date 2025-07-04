@@ -62,6 +62,8 @@ def run_keyboard_interface():
     THRESHOLDS_FILENAME = 'assets/key_thresholds.json'
     POINTS_PER_KEY = 4
     KEY_DEPTH_THRESHOLDS = {}
+    KEY_FRAME_COUNT = {}
+    FRAME_THRESHOLD = 2
 
     def load_key_thresholds_from_file(filename: str) -> bool:
         nonlocal KEY_DEPTH_THRESHOLDS
@@ -89,6 +91,8 @@ def run_keyboard_interface():
     if not load_key_thresholds_from_file(THRESHOLDS_FILENAME):
         return
 
+    KEY_FRAME_COUNT = {key: 0 for key in KEY_DEPTH_THRESHOLDS.keys()}
+
     # Start the UI in a separate thread
     ui = threading.Thread(target=ui_thread, daemon=True)
     ui.start()
@@ -99,6 +103,7 @@ def run_keyboard_interface():
     keyboard_manager = KeyboardManager(annotation_filename=ANNOTATION_FILENAME, points_per_key=POINTS_PER_KEY)
 
     # --- Application State ---
+    last_detected_keys = set()
     last_pressed_keys = set()
 
     try:
@@ -112,6 +117,8 @@ def run_keyboard_interface():
                 continue
 
             current_pressed_keys = set()
+            current_detected_keys = set()
+            # KEY_FRAME_COUNT = dict.fromkeys(KEY_FRAME_COUNT, 0)
             results = hand_tracker.process_frame(color_image)
 
             if results.multi_hand_landmarks:
@@ -143,9 +150,16 @@ def run_keyboard_interface():
                                     current_pressed_keys.add(key_data['key'])
                                     break  # Assume one finger can only press one key
 
+            # -- Update Number of Frame of each pressed keycap --
+            for current_key in current_pressed_keys:
+                KEY_FRAME_COUNT[current_key] += 1
+                if KEY_FRAME_COUNT[current_key] >= FRAME_THRESHOLD:
+                    current_detected_keys.add(current_key)
+                print(f"Key {current_key} pressed!")
+
             # --- Simulate Key Presses using pynput ---
-            newly_pressed = current_pressed_keys - last_pressed_keys
-            newly_released = last_pressed_keys - current_pressed_keys
+            newly_pressed = current_detected_keys - last_detected_keys
+            newly_released = last_detected_keys - current_detected_keys
 
             for key_str in newly_pressed:
                 try:
@@ -165,10 +179,20 @@ def run_keyboard_interface():
                 except Exception as e:
                     print(f"Could not release key '{key_str}': {e}")
 
+            uncontinous_pressed = last_pressed_keys - current_pressed_keys
+            for key in uncontinous_pressed:
+                KEY_FRAME_COUNT[key] = 0
+
+            for key in newly_released:
+                KEY_FRAME_COUNT[key] = 0
+
+            last_detected_keys = current_detected_keys
             last_pressed_keys = current_pressed_keys
 
+
+
             # --- Visualization ---
-            viz_utils.draw_keycap_annotations(color_image, keyboard_manager.get_annotated_keys(), current_pressed_keys,
+            viz_utils.draw_keycap_annotations(color_image, keyboard_manager.get_annotated_keys(), current_detected_keys,
                                               POINTS_PER_KEY)
             cv2.imshow('Virtual Keyboard Interface', color_image)
 
@@ -179,7 +203,7 @@ def run_keyboard_interface():
         # --- Clean Up ---
         print("Application stopping...")
         # Release all pressed keys
-        for key_str in last_pressed_keys:
+        for key_str in last_detected_keys:
             try:
                 if key_str in KEY_MAP:
                     keyboard.release(KEY_MAP[key_str])
