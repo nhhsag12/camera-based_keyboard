@@ -1,14 +1,10 @@
-import time
-
 import mediapipe as mp
 import cv2
-
-from src.one_euro_filter import OneEuroFilter
+import numpy as np
 
 
 class HandTracker:
-    def __init__(self, min_detection_confidence=0.3, min_tracking_confidence=0.3,
-                 min_cutoff=4.5, beta=1.5):
+    def __init__(self, min_detection_confidence=0.3, min_tracking_confidence=0.3):
         self.mp_hands = mp.solutions.hands
         self.hands = self.mp_hands.Hands(
             min_detection_confidence=min_detection_confidence,
@@ -16,10 +12,6 @@ class HandTracker:
             model_complexity=1
         )
         self.mp_drawing = mp.solutions.drawing_utils
-
-        self.filters = {}
-        self.min_cutoff = min_cutoff
-        self.beta = beta
 
         # Define the indices of the fingertip landmarks
         self.fingertip_indices = [
@@ -35,40 +27,8 @@ class HandTracker:
         RGB_image.flags.writeable = False
         results = self.hands.process(RGB_image)
         RGB_image.flags.writeable = True
-
-        if results.multi_hand_landmarks:
-            current_time = time.time()
-            for hand_idx, hand_landmarks in enumerate(results.multi_hand_landmarks):
-                if hand_idx not in self.filters:
-                    # Initialize filters for this hand if it's new
-                    self.filters[hand_idx] = {}
-                    # Only initialize filters for fingertip landmarks and their x, y components
-                    for i in self.fingertip_indices:
-                        self.filters[hand_idx][i] = {
-                            'x': OneEuroFilter(t0=current_time, x0=hand_landmarks.landmark[i].x,
-                                               min_cutoff=self.min_cutoff, beta=self.beta),
-                            'y': OneEuroFilter(t0=current_time, x0=hand_landmarks.landmark[i].y,
-                                               min_cutoff=self.min_cutoff, beta=self.beta)
-                            # 'z' is intentionally omitted here
-                        }
-
-                # Apply filter only to specified fingertip landmarks' x and y
-                for i, landmark in enumerate(hand_landmarks.landmark):
-                    if i in self.fingertip_indices:
-                        # Apply filter for X coordinate
-                        filtered_x = self.filters[hand_idx][i]['x'](current_time, landmark.x)
-                        landmark.x = filtered_x
-
-                        # Apply filter for Y coordinate
-                        filtered_y = self.filters[hand_idx][i]['y'](current_time, landmark.y)
-                        landmark.y = filtered_y
-
-                        # Z coordinate is NOT filtered here
-                    # Other non-fingertip landmarks are also NOT filtered
-
         return results
 
-    # The get_*_finger_tip methods will now return filtered x,y and unfiltered z
     def get_index_finger_tip(self, hand_landmarks, image_shape):
         h, w, _ = image_shape
         index_finger_tip = hand_landmarks.landmark[self.mp_hands.HandLandmark.INDEX_FINGER_TIP.value]

@@ -4,6 +4,7 @@ import cv2
 import mediapipe as mp
 import time
 from camera_manager import CameraManager # Import CameraManager
+from src.one_euro_filter import OneEuroFilter
 
 # --- Configuration for RealSense Camera ---
 # Define camera resolution (consistent for both color and depth)
@@ -87,6 +88,12 @@ try:
 
                 # Get depth value at the landmark's pixel location
                 depth_at_finger_m = aligned_depth_frame.get_distance(clamped_finger_pixel_x, clamped_finger_pixel_y)
+
+                # Smoothing the depth value
+                # depth_at_finger_m = OneEuroFilter(t0=time.time(),
+                #                                   min_cutoff=0.01,
+                #                                   x0=depth_at_finger_m*1000,
+                #                                   beta=0.7)(time.time(), depth_at_finger_m*1000)/1000
 
                 # Only consider valid depths (non-zero and within a reasonable range, e.g., < 5m)
                 if depth_at_finger_m > 0 and depth_at_finger_m < 5.0:

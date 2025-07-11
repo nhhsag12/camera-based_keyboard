@@ -8,7 +8,7 @@ def draw_finger_tip_info(image, finger_pixel_x, finger_pixel_y, depth_at_finger_
                 (finger_pixel_x + 10, finger_pixel_y - 10),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
 
-def draw_keycap_annotations(image, annotated_keys, pressed_keys_set, points_per_key):
+def draw_keycap_annotations(image, annotated_keys, active_key, points_per_key):
     """Draws the keyboard layout and highlights pressed keys."""
     for key_data in annotated_keys:
         key_points_list = key_data['points']
@@ -19,7 +19,7 @@ def draw_keycap_annotations(image, annotated_keys, pressed_keys_set, points_per_
             pts = pts.reshape((-1, 1, 2))
 
             # Determine color based on whether the key is currently pressed
-            if key_value in pressed_keys_set:
+            if key_value == active_key:
                 polygon_color = (0, 255, 0)  # Green for pressed key
                 thickness = 2
                 # Also draw the key name when pressed
