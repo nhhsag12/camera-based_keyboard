@@ -15,7 +15,7 @@ class CameraManager:
         self.align = rs.align(rs.stream.color)
         self.decimation_filter = rs.decimation_filter()
         self.spatial_filter = rs.spatial_filter()
-        self.temporal_filter = rs.temporal_filter()
+        self.temporal_filter = rs.temporal_filter(0.2, 100, 8)
         self.hole_filling_filter = rs.hole_filling_filter()
         self.depth_to_disparity_filter = rs.disparity_transform(True)
         self.disparity_to_depth_filter = rs.disparity_transform(False)
@@ -48,17 +48,31 @@ class CameraManager:
         device:rs.device = profile.get_device()
         # print(len(device.query_sensors()))
         depth_sensor: rs.depth_sensor = device.first_depth_sensor()
+        preset_range = depth_sensor.get_option_range(rs.option.visual_preset)
+        for i in range(int(preset_range.max)):
+            visulpreset = depth_sensor.get_option_value_description(rs.option.visual_preset, i)
+            print('%02dd: %s' % (i, visulpreset))
+            if visulpreset == 'Default':
+                depth_sensor.set_option(rs.option.visual_preset, i)
+
+        # enablehigher laser-power for better detection
+        # depth_sensor.set_option(rs.option.laser_power, 180) # D405 does not support Laser Power
+        # lower the depth unit for better accuracy and shorter distance covered
+        # depth_sensor.set_option(rs.option.depth_units, 0.0005)
         self.depth_scale = depth_sensor.get_depth_scale()
         return True
 
     def _filter_depth_data(self, frame: rs.composite_frame)->rs.frame:
-        # filtered_frame = self.decimation_filter.process(frame)
-        # filtered_frame = self.spatial_filter.process(frame)
-        filtered_frame = self.depth_to_disparity_filter.process(frame)
-        filtered_frame = self.spatial_filter.process(filtered_frame)
-        filtered_frame = self.temporal_filter.process(filtered_frame)
-        filtered_frame = self.disparity_to_depth_filter.process(filtered_frame)
-        filtered_frame = self.hole_filling_filter.process(filtered_frame)
+        # filtered_frame = self.temporal_filter.process(frame)
+        # filtered_frame = self.hole_filling_filter.process(frame)
+        filtered_frame = self.temporal_filter.process(frame)
+
+
+        # filtered_frame = self.depth_to_disparity_filter.process(frame)
+        # filtered_frame = self.spatial_filter.process(filtered_frame)
+        # filtered_frame = self.temporal_filter.process(filtered_frame)
+        # filtered_frame = self.disparity_to_depth_filter.process(filtered_frame)
+        # filtered_frame = self.hole_filling_filter.process(filtered_frame)
         return filtered_frame
 
     def get_frames(self):
@@ -66,8 +80,9 @@ class CameraManager:
         aligned_frames: rs.composite_frame = self.align.process(frames)
         aligned_depth_frame: rs.depth_frame = aligned_frames.get_depth_frame()
         color_frame: rs.video_frame = aligned_frames.get_color_frame()
-        filtered_depth_frame:rs.frame = self._filter_depth_data(aligned_depth_frame)
-        filtered_depth_frame:rs.depth_frame = filtered_depth_frame.as_depth_frame()
+        # filtered_depth_frame:rs.frame = self._filter_depth_data(aligned_depth_frame)
+        # filtered_depth_frame:rs.depth_frame = filtered_depth_frame.as_depth_frame()
+        filtered_depth_frame = aligned_depth_frame
 
 
         if not aligned_depth_frame or not color_frame:
