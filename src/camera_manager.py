@@ -3,7 +3,7 @@ import pyrealsense2 as rs
 import numpy as np
 
 class CameraManager:
-    def __init__(self, color_width=1280, color_height=720, depth_width=1280, depth_height=720, fps=30):
+    def __init__(self, color_width=848, color_height=480, depth_width=848, depth_height=480, fps=90):
         self.pipeline = rs.pipeline()
         self.config = rs.config()
         self.color_width = color_width

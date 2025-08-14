@@ -1,10 +1,7 @@
-import pyrealsense2 as rs
-import numpy as np
 import cv2
 import mediapipe as mp
 import time
 from camera_manager import CameraManager # Import CameraManager
-from src.one_euro_filter import OneEuroFilter
 
 # --- Configuration for RealSense Camera ---
 # Define camera resolution (consistent for both color and depth)

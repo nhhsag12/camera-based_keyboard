@@ -2,3 +2,5 @@ pyrealsense2~=2.55.1.6486
 mediapipe~=0.10.21
 opencv-python~=4.11.0.86
 numpy~=1.26.4
+matplotlib~=3.10.3
+pynput~=1.8.1
